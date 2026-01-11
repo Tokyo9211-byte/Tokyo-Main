@@ -1,0 +1,5 @@
+{
+  "name": "Pro Bulk Barcode Generator",
+  "description": "A professional-grade bulk barcode generation tool with support for 1D/2D formats, CSV imports, sequential ranges, and multi-unit print configurations.",
+  "requestFramePermissions": []
+}
