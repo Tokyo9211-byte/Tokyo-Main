@@ -72,5 +72,6 @@ export interface PageSetup {
   marginBottom: number;
   marginLeft: number;
   marginRight: number;
+  gutter: number;
   template?: LabelTemplate;
 }
