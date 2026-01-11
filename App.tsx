@@ -29,7 +29,7 @@ import {
   Layout, Settings, Plus, Trash2, Search, FileText, Layers, 
   CheckCircle2, XCircle, AlertTriangle, ChevronLeft, ChevronRight, 
   RotateCcw, Copy, Printer, TableProperties, Grid as GridIcon,
-  Info, Sparkles, TrendingUp
+  Sparkles, TrendingUp, Info
 } from 'lucide-react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
@@ -55,7 +55,7 @@ function barcodesReducer(state: BarcodeItem[], action: Action): BarcodeItem[] {
   }
 }
 
-const STORAGE_KEY = 'barcode_industrial_v4';
+const STORAGE_KEY = 'barcode_industrial_v5_pro';
 
 const App: React.FC = () => {
   const [barcodes, dispatch] = useReducer(barcodesReducer, []);
@@ -95,9 +95,8 @@ const App: React.FC = () => {
   });
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 40;
+  const itemsPerPage = 30;
 
-  // Session Persistence
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -120,7 +119,6 @@ const App: React.FC = () => {
     dispatch({ type: 'ADD_BATCH', payload: newItems });
   }, [config.format]);
 
-  // Derived Grid Info
   const grid = useMemo(() => calculateGrid(pageSetup, config), [pageSetup, config]);
 
   const filteredBarcodes = useMemo(() => {
@@ -143,49 +141,52 @@ const App: React.FC = () => {
   }, [filteredBarcodes, currentPage]);
 
   const handleExportPdf = async () => {
+    if (stats.valid === 0) {
+      alert("No valid barcodes to export.");
+      return;
+    }
     setExportProgress(0);
     await exportAsPdf(barcodes, config, pageSetup, setExportProgress);
     setExportProgress(null);
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F9FAFC] font-sans selection:bg-indigo-100 selection:text-indigo-900">
+    <div className="min-h-screen flex flex-col bg-[#F9FAFC] font-sans">
       <header className="bg-slate-900 text-white px-8 py-5 shadow-2xl flex items-center justify-between z-40 sticky top-0">
         <div className="flex items-center gap-4">
-          <div className="bg-indigo-500 p-2.5 rounded-2xl shadow-lg shadow-indigo-500/20">
+          <div className="bg-indigo-600 p-2.5 rounded-2xl shadow-lg shadow-indigo-600/30">
             <Layout size={28} />
           </div>
           <div>
-            <h1 className="text-xl font-black tracking-tighter uppercase italic leading-none">Industrial <span className="text-indigo-400">Labels</span></h1>
-            <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Precision Batch System v4.2</p>
+            <h1 className="text-xl font-black tracking-tighter uppercase italic leading-none">Industrial <span className="text-indigo-400">Barcode</span></h1>
+            <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Precision Batch Controller v5.0</p>
           </div>
         </div>
         
         <div className="flex items-center gap-10">
           <div className="hidden lg:flex gap-8 border-l border-slate-700 pl-8">
-            <HeaderStat label="QUEUE" value={stats.total} />
-            <HeaderStat label="READY" value={stats.valid} color="text-emerald-400" />
-            <HeaderStat label="FAILED" value={stats.invalid} color="text-rose-400" />
+            <HeaderStat label="BATCH SIZE" value={stats.total} />
+            <HeaderStat label="VERIFIED" value={stats.valid} color="text-emerald-400" />
+            <HeaderStat label="ALERT" value={stats.invalid} color="text-rose-400" />
           </div>
-          <button onClick={() => dispatch({ type: 'CLEAR_ALL' })} className="bg-slate-800 hover:bg-slate-700 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border border-slate-700 active:scale-95">
+          <button onClick={() => dispatch({ type: 'CLEAR_ALL' })} className="bg-slate-800 hover:bg-rose-900/40 hover:text-rose-400 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border border-slate-700 active:scale-95">
             Reset System
           </button>
         </div>
       </header>
 
       <main className="flex-1 flex overflow-hidden">
-        {/* Sidebar Controls */}
-        <aside className="w-[480px] border-r bg-white overflow-y-auto custom-scrollbar shadow-xl z-20">
-          <div className="p-8 space-y-12 pb-40">
-            {/* Input Section */}
+        <aside className="w-[460px] border-r bg-white overflow-y-auto custom-scrollbar shadow-xl z-20">
+          <div className="p-8 space-y-10 pb-40">
+            {/* Input Dashboard */}
             <section className="space-y-6">
-              <SectionHeader icon={<Plus size={16}/>} title="Ingestion Source" />
+              <SectionHeader icon={<Plus size={16}/>} title="Data Ingestion" />
               <div className="flex bg-slate-100 p-1.5 rounded-2xl">
                 {['manual', 'file', 'batch', 'range'].map((tab) => (
                   <button key={tab} onClick={() => setActiveTab(tab as any)} className={`flex-1 py-2.5 text-[10px] font-black rounded-xl transition-all uppercase tracking-widest ${activeTab === tab ? 'bg-white shadow-md text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}>{tab}</button>
                 ))}
               </div>
-              <div className="bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100">
+              <div className="bg-slate-50/50 p-6 rounded-[2.5rem] border border-slate-100">
                 {activeTab === 'manual' && <ManualInput onAdd={(v) => addBarcodes([v])} />}
                 {activeTab === 'batch' && <BatchInput onAdd={(list) => addBarcodes(list)} />}
                 {activeTab === 'file' && <FileInput onAdd={(list) => addBarcodes(list)} setIsProcessing={setIsProcessing} setMsg={setProcessingMsg} />}
@@ -193,11 +194,11 @@ const App: React.FC = () => {
               </div>
             </section>
 
-            {/* Barcode Specs */}
+            {/* Symbology Config */}
             <section className="space-y-6 pt-10 border-t border-slate-100">
-              <SectionHeader icon={<Settings size={16}/>} title="Barcode specifications" />
+              <SectionHeader icon={<Settings size={16}/>} title="Symbology Parameters" />
               <div className="grid gap-6">
-                <SelectGroup label="Symbology Standard" value={config.format} onChange={v => setConfig({...config, format: v as BarcodeFormat})}>
+                <SelectGroup label="Standard Symbology" value={config.format} onChange={v => setConfig({...config, format: v as BarcodeFormat})}>
                   {FORMAT_GROUPS.map(g => <optgroup key={g.name} label={g.name}>{g.formats.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</optgroup>)}
                 </SelectGroup>
                 <div className="grid grid-cols-2 gap-4">
@@ -209,24 +210,24 @@ const App: React.FC = () => {
 
             {/* Layout Engine */}
             <section className="space-y-8 pt-10 border-t border-slate-100">
-              <SectionHeader icon={<Printer size={16}/>} title="Layout Architecture" />
+              <SectionHeader icon={<Printer size={16}/>} title="Page Architecture" />
               
               <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
-                  <SelectGroup label="Stock Format" value={pageSetup.pageSize} onChange={v => {
+                  <SelectGroup label="Base Format" value={pageSetup.pageSize} onChange={v => {
                     const dims = PAGE_SIZES[v as PageSizeType];
                     setPageSetup({...pageSetup, pageSize: v as PageSizeType, width: dims.width, height: dims.height, unit: dims.unit});
                   }}>
                     {Object.keys(PAGE_SIZES).map(s => <option key={s} value={s}>{s}</option>)}
                   </SelectGroup>
-                  <SelectGroup label="Print Orientation" value={pageSetup.orientation} onChange={v => setPageSetup({...pageSetup, orientation: v as any})}>
+                  <SelectGroup label="Orientation" value={pageSetup.orientation} onChange={v => setPageSetup({...pageSetup, orientation: v as any})}>
                     <option value="portrait">Portrait</option>
                     <option value="landscape">Landscape</option>
                   </SelectGroup>
                 </div>
 
                 <div className="space-y-4">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">Printable Margins</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Printable Margins</p>
                   <div className="grid grid-cols-2 gap-4">
                     <UnitInput label="Top" value={pageSetup.marginTop} unit={pageSetup.unit} onChange={v => setPageSetup({...pageSetup, marginTop: v})} onUnitChange={u => setPageSetup({...pageSetup, unit: u})} />
                     <UnitInput label="Bottom" value={pageSetup.marginBottom} unit={pageSetup.unit} onChange={v => setPageSetup({...pageSetup, marginBottom: v})} onUnitChange={u => setPageSetup({...pageSetup, unit: u})} />
@@ -236,51 +237,55 @@ const App: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <UnitInput label="Item Gap (Gutter)" value={pageSetup.gutter} unit={pageSetup.unit} onChange={v => setPageSetup({...pageSetup, gutter: v})} onUnitChange={u => setPageSetup({...pageSetup, unit: u})} />
-                  <SelectGroup label="Grid Template" value={pageSetup.template?.name || ''} onChange={v => setPageSetup({...pageSetup, template: LABEL_TEMPLATES.find(t => t.name === v)})}>
-                    <option value="">Auto-Optimize</option>
+                  <UnitInput label="Item Gap" value={pageSetup.gutter} unit={pageSetup.unit} onChange={v => setPageSetup({...pageSetup, gutter: v})} onUnitChange={u => setPageSetup({...pageSetup, unit: u})} />
+                  <SelectGroup label="Grid Preset" value={pageSetup.template?.name || ''} onChange={v => setPageSetup({...pageSetup, template: LABEL_TEMPLATES.find(t => t.name === v)})}>
+                    <option value="">Optimized Placement</option>
                     {LABEL_TEMPLATES.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
                   </SelectGroup>
                 </div>
 
-                {/* Efficiency Insights */}
-                <div className="bg-indigo-600 text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700"></div>
+                {/* Capacity Analysis */}
+                <div className="bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden group border border-slate-800">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-indigo-600/40 transition-all duration-700"></div>
                   <div className="relative z-10 space-y-6">
-                    <div className="flex justify-between items-center text-[10px] font-black border-b border-indigo-400 pb-4 mb-2 uppercase tracking-[0.2em]">
-                      <span className="flex items-center gap-2"><Sparkles size={12}/> Analysis Hub</span>
-                      <span className="bg-white/20 px-4 py-1.5 rounded-full">{grid.efficiency.toFixed(1)}% Utility</span>
+                    <div className="flex justify-between items-center text-[10px] font-black border-b border-white/10 pb-4 mb-2 uppercase tracking-[0.2em]">
+                      <span className="flex items-center gap-2"><Sparkles size={12} className="text-indigo-400"/> Capacity Suggestion</span>
+                      <span className="bg-indigo-600/30 text-indigo-300 px-4 py-1.5 rounded-full">{grid.efficiency.toFixed(1)}% Usage</span>
                     </div>
                     <div className="grid grid-cols-2 gap-8">
                       <div>
-                        <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest mb-2">Grid Matrix</p>
-                        <p className="text-3xl font-black">{grid.cols} <span className="text-indigo-300">×</span> {grid.rows}</p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Matrix</p>
+                        <p className="text-3xl font-black">{grid.cols} <span className="text-slate-600">×</span> {grid.rows}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest mb-2">Per Sheet</p>
-                        <p className="text-3xl font-black">{grid.totalCapacity}</p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Total Capacity</p>
+                        <p className="text-3xl font-black text-indigo-400">{grid.totalCapacity}</p>
                       </div>
                     </div>
                     {grid.suggestions.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-indigo-400">
-                        <p className="text-[9px] font-black uppercase tracking-widest mb-2 flex items-center gap-2"><TrendingUp size={12}/> Optimization Tip</p>
-                        <p className="text-[11px] font-medium leading-relaxed opacity-90 italic">{grid.suggestions[0]}</p>
+                      <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
+                         <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2"><TrendingUp size={12}/> Optimization Strategy</p>
+                         {grid.suggestions.map((s, idx) => (
+                           <p key={idx} className="text-[11px] font-medium leading-relaxed text-slate-300 italic flex gap-2">
+                             <Info size={12} className="shrink-0 text-indigo-500" /> {s}
+                           </p>
+                         ))}
                       </div>
                     )}
                   </div>
                 </div>
 
                 <div className="pt-6">
-                  <SectionHeader icon={<GridIcon size={14}/>} title="Live Precision Proof" />
+                  <SectionHeader icon={<GridIcon size={14}/>} title="Live Placement Preview" />
                   <LiveProof grid={grid} pageSetup={pageSetup} config={config} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 pt-8">
                   <button onClick={async () => { setExportProgress(0); await exportAsZip(barcodes, config, setExportProgress); setExportProgress(null); }} className="flex items-center justify-center gap-3 bg-white text-slate-900 py-4.5 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 border-slate-100 hover:border-indigo-100 hover:text-indigo-600 transition-all shadow-xl active:scale-95">
-                    <Layers size={18} /> Archive PNGs
+                    <Layers size={18} /> PNG Archive
                   </button>
-                  <button onClick={handleExportPdf} className="flex items-center justify-center gap-3 bg-indigo-600 text-white py-4.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 shadow-2xl shadow-indigo-500/30 transition-all active:scale-95">
-                    <FileText size={18} /> Generate PDF
+                  <button onClick={handleExportPdf} className="flex items-center justify-center gap-3 bg-indigo-600 text-white py-4.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 shadow-2xl shadow-indigo-600/30 transition-all active:scale-95">
+                    <FileText size={18} /> Export PDF
                   </button>
                 </div>
               </div>
@@ -288,13 +293,12 @@ const App: React.FC = () => {
           </div>
         </aside>
 
-        {/* Workspace Display */}
         <div className="flex-1 flex flex-col bg-[#F4F6FB] overflow-hidden">
           <div className="bg-white border-b px-8 py-6 flex items-center justify-between shadow-sm z-10">
             <div className="flex items-center gap-8 flex-1">
               <div className="relative flex-1 max-w-xl">
                 <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={22} />
-                <input type="text" placeholder="Search product codes..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-16 pr-8 py-4.5 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-4 focus:ring-indigo-50 shadow-inner bg-slate-50/50 transition-all font-bold" />
+                <input type="text" placeholder="Filter product batch..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-16 pr-8 py-4.5 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-4 focus:ring-indigo-50 shadow-inner bg-slate-50/50 transition-all font-bold" />
               </div>
               <div className="flex bg-slate-100 p-1.5 rounded-2xl">
                 {['all', 'valid', 'invalid'].map((f) => (
@@ -311,7 +315,7 @@ const App: React.FC = () => {
               </div>
               {selectedIds.size > 0 && (
                 <button onClick={() => { dispatch({ type: 'DELETE_IDS', payload: Array.from(selectedIds) }); setSelectedIds(new Set()); }} className="bg-rose-50 text-rose-600 hover:bg-rose-100 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border border-rose-100 flex items-center gap-3">
-                  <Trash2 size={18} /> Remove ({selectedIds.size})
+                  <Trash2 size={18} /> Delete ({selectedIds.size})
                 </button>
               )}
             </div>
@@ -335,16 +339,14 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Overlays */}
-      {isProcessing && <Overlay title="Processing Engine" msg={processingMsg} loading />}
-      {exportProgress !== null && <Overlay title="Generating Industrial PDF" msg={`Finalizing labels... ${exportProgress}%`} progress={exportProgress} />}
+      {isProcessing && <Overlay title="Engine Processing" msg={processingMsg} loading />}
+      {exportProgress !== null && <Overlay title="Industrial Rendering" msg={`Building PDF frames... ${exportProgress}%`} progress={exportProgress} />}
     </div>
   );
 };
 
 // UI Components
 
-// Explicitly typed HeaderStat to prevent type errors
 interface HeaderStatProps {
   label: string;
   value: string | number;
@@ -358,7 +360,6 @@ const HeaderStat: React.FC<HeaderStatProps> = ({ label, value, color = "text-whi
   </div>
 );
 
-// Explicitly typed SectionHeader
 interface SectionHeaderProps {
   icon: React.ReactNode;
   title: string;
@@ -366,11 +367,10 @@ interface SectionHeaderProps {
 
 const SectionHeader: React.FC<SectionHeaderProps> = ({ icon, title }) => (
   <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-3">
-    <span className="bg-slate-100 p-1.5 rounded-lg text-slate-500">{icon}</span> {title}
+    <span className="bg-slate-100 p-1.5 rounded-lg text-slate-600">{icon}</span> {title}
   </h2>
 );
 
-// Explicitly typed SelectGroup to handle children correctly
 interface SelectGroupProps {
   label: string;
   value: string;
@@ -390,7 +390,6 @@ const SelectGroup: React.FC<SelectGroupProps> = ({ label, value, onChange, child
   </div>
 );
 
-// Explicitly typed UnitInput
 interface UnitInputProps {
   label: string;
   value: number;
@@ -405,7 +404,7 @@ const UnitInput: React.FC<UnitInputProps> = ({ label, value, unit, onChange, onU
     <div className="flex shadow-sm rounded-2xl overflow-hidden border border-slate-200 focus-within:ring-4 focus-within:ring-indigo-100 transition-all">
       <input type="number" step="any" value={value} onChange={e => onChange(parseFloat(e.target.value) || 0)} className="flex-1 w-full px-4 py-3 text-xs outline-none font-bold bg-white" />
       <select value={unit} onChange={e => onUnitChange(e.target.value as Unit)} className="bg-slate-50 border-l border-slate-200 px-3 py-3 text-[10px] font-black uppercase tracking-tighter cursor-pointer outline-none">
-        {Object.values(Unit).map(u => <option key={u} value={u}>{u}</option>)}
+        {Object.values(Unit).map(u => <option key={u} value={u}>{u.toUpperCase()}</option>)}
       </select>
     </div>
   </div>
@@ -414,40 +413,59 @@ const UnitInput: React.FC<UnitInputProps> = ({ label, value, unit, onChange, onU
 const LiveProof: React.FC<{ grid: GridResult, pageSetup: PageSetup, config: BarcodeConfig }> = ({ grid, pageSetup, config }) => {
   const maxW = 340;
   const maxH = 260;
+  
+  // Guard for invalid grid
+  if (!grid.pWidth || !grid.pHeight) return <div className="p-10 text-slate-300 italic text-xs">Invalid page setup</div>;
+
   const scale = Math.min(maxW / grid.pWidth, maxH / grid.pHeight);
   const vW = grid.pWidth * scale;
   const vH = grid.pHeight * scale;
 
-  // For the preview, we need to convert barcode dims to page units
-  const scaleFactor = UNIT_FACTORS[pageSetup.unit] / UNIT_FACTORS[config.unit];
-  const bW_page = config.width * scaleFactor;
-  const bH_page = config.height * scaleFactor;
+  const scaleToPage = UNIT_FACTORS[pageSetup.unit] / UNIT_FACTORS[config.unit];
+  const bW_page = config.width * scaleToPage;
+  const bH_page = config.height * scaleToPage;
+  const gut_page = grid.gutter;
 
-  const actualGridW = grid.cols * bW_page + (grid.cols - 1) * grid.gutter;
-  const actualGridH = grid.rows * bH_page + (grid.rows - 1) * grid.gutter;
+  const actualGridW = grid.cols * bW_page + (grid.cols - 1) * gut_page;
+  const actualGridH = grid.rows * bH_page + (grid.rows - 1) * gut_page;
+  
   const xStart = grid.mLeft + (grid.pWidth - grid.mLeft - grid.mRight - actualGridW) / 2;
   const yStart = grid.mTop + (grid.pHeight - grid.mTop - grid.mBottom - actualGridH) / 2;
 
   const rects = [];
-  for(let r=0; r<grid.rows; r++) {
-    for(let c=0; c<grid.cols; c++) {
-      rects.push(
-        <rect key={`${r}-${c}`} x={(xStart + c * (bW_page + grid.gutter)) * scale} y={(yStart + r * (bH_page + grid.gutter)) * scale} width={bW_page * scale} height={bH_page * scale} className="fill-indigo-500/10 stroke-indigo-400/30 stroke-[0.5]" />
-      );
+  if (grid.cols > 0 && grid.rows > 0) {
+    for(let r=0; r < Math.min(grid.rows, 50); r++) {
+      for(let c=0; c < Math.min(grid.cols, 50); c++) {
+        rects.push(
+          <rect 
+            key={`${r}-${c}`} 
+            x={(xStart + c * (bW_page + gut_page)) * scale} 
+            y={(yStart + r * (bH_page + gut_page)) * scale} 
+            width={bW_page * scale} 
+            height={bH_page * scale} 
+            className="fill-indigo-500/10 stroke-indigo-500/40 stroke-[0.5]" 
+          />
+        );
+      }
     }
   }
 
   return (
-    <div className="flex items-center justify-center bg-slate-50 rounded-[3rem] p-12 border border-slate-200/60 shadow-inner min-h-[300px]">
-      <svg width={vW} height={vH} className="bg-white shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] border border-slate-100 transition-all duration-500 overflow-visible rounded-sm">
-        <rect x={grid.mLeft * scale} y={grid.mTop * scale} width={(grid.pWidth - grid.mLeft - grid.mRight) * scale} height={(grid.pHeight - grid.mTop - grid.mBottom) * scale} className="fill-none stroke-slate-100 stroke-dashed stroke-[0.5]" />
+    <div className="flex items-center justify-center bg-slate-50/50 rounded-[2.5rem] p-12 border border-slate-200/50 shadow-inner min-h-[300px]">
+      <svg width={vW} height={vH} className="bg-white shadow-[0_20px_50px_-15px_rgba(0,0,0,0.1)] border border-slate-100 transition-all duration-500 overflow-visible rounded-sm">
+        <rect 
+          x={grid.mLeft * scale} 
+          y={grid.mTop * scale} 
+          width={(grid.pWidth - grid.mLeft - grid.mRight) * scale} 
+          height={(grid.pHeight - grid.mTop - grid.mBottom) * scale} 
+          className="fill-none stroke-slate-200 stroke-dashed stroke-[0.5]" 
+        />
         {rects}
       </svg>
     </div>
   );
 };
 
-// Explicitly typed BarcodeCard to support 'key' prop in lists and prevent inference errors
 interface BarcodeCardProps {
   item: BarcodeItem;
   config: BarcodeConfig;
@@ -458,19 +476,26 @@ interface BarcodeCardProps {
 
 const BarcodeCard: React.FC<BarcodeCardProps> = ({ item, config, isSelected, onToggle, onDelete }) => {
   const [url, setUrl] = useState('');
-  useEffect(() => { if (item.valid) renderBarcodeToDataUrl(item, config).then(setUrl); }, [item, config]);
+  useEffect(() => { 
+    if (item.valid) {
+      const timer = setTimeout(() => {
+        renderBarcodeToDataUrl(item, config).then(setUrl);
+      }, 50);
+      return () => clearTimeout(timer);
+    } 
+  }, [item.data, item.valid, config]);
 
   return (
-    <div className={`group relative bg-white rounded-[2.5rem] border-[3.5px] transition-all p-8 cursor-pointer hover:shadow-2xl hover:-translate-y-4 ${isSelected ? 'border-indigo-500 shadow-indigo-100' : 'border-transparent shadow-xl shadow-slate-200/30'}`} onClick={onToggle}>
+    <div className={`group relative bg-white rounded-[2.5rem] border-[3.5px] transition-all p-8 cursor-pointer hover:shadow-2xl hover:-translate-y-4 ${isSelected ? 'border-indigo-600 shadow-indigo-100' : 'border-transparent shadow-xl shadow-slate-200/30'}`} onClick={onToggle}>
       <div className="flex items-center justify-between mb-8">
         <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em]">LN_{item.index}</span>
         <div className="flex items-center gap-3">
           {item.valid ? <CheckCircle2 size={22} className="text-emerald-500" /> : <XCircle size={22} className="text-rose-500" />}
-          <button onClick={e => { e.stopPropagation(); onDelete(); }} className="text-slate-200 hover:text-rose-500 transition-colors p-2.5 rounded-2xl hover:bg-rose-50"><Trash2 size={18} /></button>
+          <button onClick={e => { e.stopPropagation(); onDelete(); }} className="text-slate-200 hover:text-rose-600 transition-colors p-2.5 rounded-2xl hover:bg-rose-50"><Trash2 size={18} /></button>
         </div>
       </div>
       <div className="flex items-center justify-center min-h-[160px] bg-slate-50/50 rounded-[2.5rem] p-8 overflow-hidden border border-slate-100 group-hover:bg-white transition-all relative">
-        {item.valid ? (url ? <img src={url} alt={item.data} className="max-w-full h-auto object-contain transition-transform group-hover:scale-110 drop-shadow-md" /> : <div className="animate-pulse w-full h-24 bg-slate-100 rounded-2xl" />) : <div className="text-center p-6"><AlertTriangle className="mx-auto text-amber-500 mb-4" size={44} /><p className="text-[10px] text-rose-500 font-black uppercase tracking-tighter">{item.error || 'CRC_ERR'}</p></div>}
+        {item.valid ? (url ? <img src={url} alt={item.data} className="max-w-full h-auto object-contain transition-transform group-hover:scale-110 drop-shadow-md" /> : <div className="animate-pulse w-full h-24 bg-slate-100 rounded-2xl" />) : <div className="text-center p-6"><AlertTriangle className="mx-auto text-amber-500 mb-4" size={44} /><p className="text-[10px] text-rose-500 font-black uppercase tracking-tighter leading-tight">{item.error || 'INVALID'}</p></div>}
       </div>
       <div className="mt-10 flex items-center justify-between gap-8">
         <div className="truncate flex-1">
@@ -483,98 +508,88 @@ const BarcodeCard: React.FC<BarcodeCardProps> = ({ item, config, isSelected, onT
   );
 };
 
-// Input Sub-Components
+// Input Components
 
-interface ManualInputProps {
-  onAdd: (v: string) => void;
-}
-
+interface ManualInputProps { onAdd: (v: string) => void; }
 const ManualInput: React.FC<ManualInputProps> = ({ onAdd }) => {
   const [val, setVal] = useState('');
   return (
     <div className="flex gap-4">
-      <input type="text" value={val} onChange={e => setVal(e.target.value)} onKeyDown={e => e.key === 'Enter' && (onAdd(val), setVal(''))} placeholder="Entry code..." className="flex-1 px-6 py-4 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-4 focus:ring-indigo-100 bg-white font-bold" />
-      <button onClick={() => {onAdd(val); setVal('');}} className="bg-indigo-600 text-white px-8 rounded-2xl hover:bg-indigo-700 shadow-xl active:scale-90 transition-all"><Plus size={28}/></button>
+      <input type="text" value={val} onChange={e => setVal(e.target.value)} onKeyDown={e => e.key === 'Enter' && (onAdd(val), setVal(''))} placeholder="Entry code..." className="flex-1 px-6 py-4 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-4 focus:ring-indigo-100/40 bg-white font-bold" />
+      <button onClick={() => {if(val) onAdd(val); setVal('');}} className="bg-indigo-600 text-white px-8 rounded-2xl hover:bg-indigo-700 shadow-xl active:scale-90 transition-all"><Plus size={28}/></button>
     </div>
   );
 };
 
-interface BatchInputProps {
-  onAdd: (list: string[]) => void;
-}
-
+interface BatchInputProps { onAdd: (list: string[]) => void; }
 const BatchInput: React.FC<BatchInputProps> = ({ onAdd }) => {
   const [val, setVal] = useState('');
   return (
     <div className="space-y-4">
-      <textarea value={val} onChange={e => setVal(e.target.value)} placeholder="One SKU per line..." className="w-full h-44 px-6 py-5 border border-slate-200 rounded-[2rem] text-sm focus:ring-4 focus:ring-indigo-100 bg-white font-bold resize-none" />
+      <textarea value={val} onChange={e => setVal(e.target.value)} placeholder="One SKU per line..." className="w-full h-44 px-6 py-5 border border-slate-200 rounded-[2rem] text-sm focus:ring-4 focus:ring-indigo-100/40 bg-white font-bold resize-none custom-scrollbar" />
       <button onClick={() => {onAdd(val.split('\n').filter(Boolean)); setVal('');}} className="w-full bg-indigo-600 text-white py-4.5 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-700 shadow-2xl transition-all">Import List</button>
     </div>
   );
 };
 
-interface RangeInputProps {
-  onAdd: (list: string[]) => void;
-}
-
+interface RangeInputProps { onAdd: (list: string[]) => void; }
 const RangeInput: React.FC<RangeInputProps> = ({ onAdd }) => {
   const [p, setP] = useState({ pre: 'SKU-', start: 1, end: 50, suf: '' });
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
-        <InputGroup label="Pre" value={p.pre} onChange={v => setP({...p, pre: v})} />
-        <InputGroup label="Suf" value={p.suf} onChange={v => setP({...p, suf: v})} />
-        <InputGroup label="Start" type="number" value={p.start} onChange={v => setP({...p, start: parseInt(v)})} />
-        <InputGroup label="End" type="number" value={p.end} onChange={v => setP({...p, end: parseInt(v)})} />
+        <InputGroupSimple label="Prefix" value={p.pre} onChange={v => setP({...p, pre: v})} />
+        <InputGroupSimple label="Suffix" value={p.suf} onChange={v => setP({...p, suf: v})} />
+        <InputGroupSimple label="Start" type="number" value={p.start} onChange={v => setP({...p, start: parseInt(v)})} />
+        <InputGroupSimple label="End" type="number" value={p.end} onChange={v => setP({...p, end: parseInt(v)})} />
       </div>
       <button onClick={() => {
         const l = [];
-        for(let i=p.start; i<=p.end; i++) l.push(`${p.pre}${i}${p.suf}`);
+        const limit = Math.min(p.end, p.start + 5000); 
+        for(let i=p.start; i<=limit; i++) l.push(`${p.pre}${i}${p.suf}`);
         onAdd(l);
       }} className="w-full bg-indigo-600 text-white py-4.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 shadow-xl active:scale-95 transition-all">Generate Sequence</button>
     </div>
   );
 };
 
-interface FileInputProps {
-  onAdd: (list: string[]) => void;
-  setIsProcessing: (v: boolean) => void;
-  setMsg: (v: string) => void;
-}
-
+interface FileInputProps { onAdd: (list: string[]) => void; setIsProcessing: (v: boolean) => void; setMsg: (v: string) => void; }
 const FileInput: React.FC<FileInputProps> = ({ onAdd, setIsProcessing, setMsg }) => (
   <div className="border-3 border-dashed border-slate-200 rounded-[2.5rem] p-12 text-center hover:border-indigo-500 transition-all group relative bg-white hover:shadow-2xl">
     <input type="file" accept=".csv,.xlsx,.xls" onChange={async e => {
       const f = e.target.files?.[0]; if(!f) return;
-      setIsProcessing(true); setMsg(`Mapping ${f.name}...`);
+      setIsProcessing(true); setMsg(`Parsing ${f.name}...`);
       if(f.name.endsWith('.csv')) {
-        Papa.parse(f, { header: true, complete: (r) => { 
-          onAdd(r.data.flatMap(row => Array(parseInt(row.quantity || '1')).fill(row.code || row.barcode || Object.values(row)[0])));
+        Papa.parse(f, { header: true, skipEmptyLines: true, complete: (r) => { 
+          onAdd(r.data.flatMap(row => {
+            const code = row.code || row.barcode || Object.values(row)[0];
+            const qty = parseInt(row.quantity || '1') || 1;
+            return Array(Math.min(qty, 1000)).fill(String(code));
+          }));
           setIsProcessing(false); (e.target as HTMLInputElement).value = '';
         }});
       } else {
         const r = new FileReader(); r.onload = (ev) => {
-          const wb = XLSX.read(ev.target?.result, {type:'binary'});
-          const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-          onAdd(data.flatMap((row: any) => Array(parseInt(row.quantity || '1')).fill(row.code || row.barcode || Object.values(row)[0])));
+          try {
+            const wb = XLSX.read(ev.target?.result, {type:'binary'});
+            const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.Sheets.SheetNames ? wb.Sheets.SheetNames[0] : Object.keys(wb.Sheets)[0]]);
+            onAdd(data.flatMap((row: any) => {
+              const code = row.code || row.barcode || Object.values(row)[0];
+              const qty = parseInt(row.quantity || '1') || 1;
+              return Array(Math.min(qty, 1000)).fill(String(code));
+            }));
+          } catch(err) { alert("Excel format error."); }
           setIsProcessing(false); (e.target as HTMLInputElement).value = '';
         }; r.readAsBinaryString(f);
       }
     }} className="absolute inset-0 opacity-0 cursor-pointer" />
     <TableProperties className="mx-auto text-slate-200 group-hover:text-indigo-500 mb-5 transition-all group-hover:scale-110" size={56} />
-    <p className="text-base font-black text-slate-800">Drop Inventory File</p>
-    <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest leading-relaxed">CSV / Excel support with Qty</p>
+    <p className="text-base font-black text-slate-800">Drop Inventory List</p>
+    <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest leading-relaxed">CSV or Excel support (Code/Qty columns)</p>
   </div>
 );
 
-interface InputGroupProps {
-  label: string;
-  type?: string;
-  value: string | number;
-  onChange: (v: string) => void;
-}
-
-const InputGroup: React.FC<InputGroupProps> = ({ label, type = 'text', value, onChange }) => (
+const InputGroupSimple = ({ label, type = 'text', value, onChange }: any) => (
   <div className="space-y-2">
     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block pl-1">{label}</label>
     <input type={type} value={value} onChange={e => onChange(e.target.value)} className="w-full px-5 py-3.5 border border-slate-200 rounded-2xl text-xs outline-none focus:ring-4 focus:ring-indigo-50 transition-all bg-white font-bold" />
@@ -585,33 +600,27 @@ const EmptyState: React.FC = () => (
   <div className="h-full flex flex-col items-center justify-center text-slate-300">
     <div className="bg-white p-14 rounded-[4rem] shadow-2xl mb-10 border border-slate-50 relative overflow-hidden group">
       <div className="absolute inset-0 bg-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-      <RotateCcw size={110} strokeWidth={1} className="text-slate-100 group-hover:text-indigo-200 transition-all duration-700 relative z-10 animate-[spin_20s_linear_infinite]" />
+      <RotateCcw size={110} strokeWidth={1} className="text-slate-100 group-hover:text-indigo-200 transition-all duration-700 relative z-10 animate-[spin_30s_linear_infinite]" />
     </div>
-    <h3 className="text-3xl font-black text-slate-900 tracking-tighter">System Idle</h3>
-    <p className="text-slate-400 text-base mt-3 max-w-sm text-center font-medium leading-relaxed">Input a data stream via file or manual entry to begin the industrial rendering process.</p>
+    <h3 className="text-3xl font-black text-slate-900 tracking-tighter">Controller Idle</h3>
+    <p className="text-slate-400 text-base mt-3 max-w-sm text-center font-medium leading-relaxed">No batch data loaded. Import inventory or generate SKU sequences to populate the queue.</p>
   </div>
 );
 
-interface OverlayProps {
-  title: string;
-  msg: string;
-  loading?: boolean;
-  progress?: number;
-}
-
+interface OverlayProps { title: string; msg: string; loading?: boolean; progress?: number; }
 const Overlay: React.FC<OverlayProps> = ({ title, msg, loading = false, progress = 0 }) => (
   <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl flex items-center justify-center z-[200]">
-    <div className="bg-white p-16 rounded-[4rem] shadow-2xl max-w-lg w-full space-y-12 text-center scale-105 border border-white/20">
+    <div className="bg-white p-16 rounded-[4rem] shadow-2xl max-w-lg w-full space-y-12 text-center border border-white/20 animate-in fade-in zoom-in duration-300">
       {loading ? (
-        <div className="flex justify-center"><div className="w-20 h-20 border-8 border-indigo-500 border-t-transparent rounded-full animate-spin"></div></div>
+        <div className="flex justify-center"><div className="w-20 h-20 border-8 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
       ) : (
         <div className="relative h-4 bg-slate-100 rounded-full overflow-hidden shadow-inner">
           <div className="absolute inset-y-0 left-0 bg-indigo-600 transition-all duration-300 rounded-full" style={{ width: `${progress}%` }}></div>
         </div>
       )}
-      <div className="space-y-3">
-        <p className="text-4xl font-black text-slate-900 tracking-tighter italic">{title}</p>
-        <p className="text-lg font-black text-indigo-500 uppercase tracking-widest">{msg}</p>
+      <div className="space-y-4">
+        <p className="text-3xl font-black text-slate-900 tracking-tighter italic uppercase">{title}</p>
+        <p className="text-lg font-black text-indigo-600 uppercase tracking-widest leading-tight">{msg}</p>
       </div>
     </div>
   </div>
