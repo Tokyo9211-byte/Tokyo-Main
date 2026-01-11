@@ -48,31 +48,26 @@ export const calculateGrid = (pageSetup: PageSetup, config: BarcodeConfig): Grid
   const availableW = Math.max(0, pW_in - mL_in - mR_in);
   const availableH = Math.max(0, pH_in - mT_in - mB_in);
 
-  // Calculate actual fit with a tiny epsilon to handle rounding
+  // Calculate actual fit with safety epsilon
   const cols = availableW > 0 ? Math.floor((availableW + gut_in + 0.0001) / (bW_in + gut_in)) : 0;
   const rows = availableH > 0 ? Math.floor((availableH + gut_in + 0.0001) / (bH_in + gut_in)) : 0;
 
-  const usedArea = (cols > 0 && rows > 0) ? cols * rows * bW_in * bH_in : 0;
-  const totalArea = availableW * availableH;
+  const usedArea = (cols > 0 && rows > 0) ? (cols * bW_in) * (rows * bH_in) : 0;
+  const totalArea = pW_in * pH_in;
   const efficiency = totalArea > 0 ? (usedArea / totalArea) * 100 : 0;
 
   const suggestions: string[] = [];
   
-  // Suggestion Engine
   if (cols > 0 && rows > 0) {
     const remW = (availableW + gut_in) % (bW_in + gut_in);
     const neededForNextCol = (bW_in + gut_in) - remW;
-    if (neededForNextCol < 0.25) {
-      suggestions.push(`Reduce horizontal margins by ${neededForNextCol.toFixed(2)}in to fit +1 column.`);
-    }
+    if (neededForNextCol < 0.3) suggestions.push(`Reduce horizontal margins by ${neededForNextCol.toFixed(2)}in to fit 1 more column.`);
 
     const remH = (availableH + gut_in) % (bH_in + gut_in);
     const neededForNextRow = (bH_in + gut_in) - remH;
-    if (neededForNextRow < 0.25) {
-      suggestions.push(`Reduce vertical margins by ${neededForNextRow.toFixed(2)}in to fit +1 row.`);
-    }
+    if (neededForNextRow < 0.3) suggestions.push(`Reduce vertical margins by ${neededForNextRow.toFixed(2)}in to fit 1 more row.`);
   } else if (availableW > 0 && availableH > 0) {
-    suggestions.push("Barcode dimensions are larger than available printable area.");
+    suggestions.push("Barcode size exceeds printable area defined by margins.");
   }
 
   return {
@@ -99,7 +94,7 @@ export const exportAsZip = async (
   onProgress: (p: number) => void
 ) => {
   const zip = new JSZip();
-  const folder = zip.folder('batch_export');
+  const folder = zip.folder('barcodes');
   const validBarcodes = barcodes.filter(b => b.valid);
   
   if (validBarcodes.length === 0) return;
@@ -114,7 +109,7 @@ export const exportAsZip = async (
   }
   
   const content = await zip.generateAsync({ type: 'blob' });
-  saveAs(content, `barcodes_${Date.now()}.zip`);
+  saveAs(content, `barcode_export_${Date.now()}.zip`);
 };
 
 export const exportAsPdf = async (
@@ -123,7 +118,6 @@ export const exportAsPdf = async (
   pageSetup: PageSetup,
   onProgress: (p: number) => void
 ) => {
-  // Map our Unit enum to jsPDF expected strings
   let pdfUnit: 'pt' | 'mm' | 'cm' | 'in' = 'mm';
   if (pageSetup.unit === Unit.IN) pdfUnit = 'in';
   else if (pageSetup.unit === Unit.CM) pdfUnit = 'cm';
@@ -140,21 +134,20 @@ export const exportAsPdf = async (
   const validBarcodes = barcodes.filter(b => b.valid);
   
   if (validBarcodes.length === 0 || grid.totalCapacity <= 0) {
-    alert("Nothing to export or invalid grid layout.");
+    alert("Invalid layout or no valid barcodes.");
     return;
   }
 
-  // Cross-unit conversion factor for barcode dims to page units
-  const scaleToPage = UNIT_FACTORS[pageSetup.unit] / UNIT_FACTORS[config.unit];
-  const bW_page = config.width * scaleToPage;
-  const bH_page = config.height * scaleToPage;
-  const gut_page = grid.gutter; // Gutter is already in page units per calculation
+  const scale = UNIT_FACTORS[pageSetup.unit] / UNIT_FACTORS[config.unit];
+  const bW_p = config.width * scale;
+  const bH_p = config.height * scale;
+  const gut_p = pageSetup.gutter;
 
-  // Optimal placement: Calculate centered starting position
-  const actualGridW = grid.cols * bW_page + (grid.cols - 1) * gut_page;
-  const actualGridH = grid.rows * bH_page + (grid.rows - 1) * gut_page;
-  const xStart = grid.mLeft + (grid.pWidth - grid.mLeft - grid.mRight - actualGridW) / 2;
-  const yStart = grid.mTop + (grid.pHeight - grid.mTop - grid.mBottom - actualGridH) / 2;
+  // Center the grid in the margin area
+  const actualGridW = grid.cols * bW_p + (grid.cols - 1) * gut_p;
+  const actualGridH = grid.rows * bH_p + (grid.rows - 1) * gut_p;
+  const xStart = pageSetup.marginLeft + (grid.pWidth - pageSetup.marginLeft - pageSetup.marginRight - actualGridW) / 2;
+  const yStart = pageSetup.marginTop + (grid.pHeight - pageSetup.marginTop - pageSetup.marginBottom - actualGridH) / 2;
 
   let count = 0;
   while (count < validBarcodes.length) {
@@ -164,12 +157,12 @@ export const exportAsPdf = async (
       for (let c = 0; c < grid.cols; c++) {
         if (count >= validBarcodes.length) break;
         
-        const x = xStart + c * (bW_page + gut_page);
-        const y = yStart + r * (bH_page + gut_page);
+        const x = xStart + c * (bW_p + gut_p);
+        const y = yStart + r * (bH_p + gut_p);
 
         const dataUrl = await renderBarcodeToDataUrl(validBarcodes[count], config);
         if (dataUrl) {
-          doc.addImage(dataUrl, 'PNG', x, y, bW_page, bH_page, undefined, 'NONE');
+          doc.addImage(dataUrl, 'PNG', x, y, bW_p, bH_p, undefined, 'NONE');
         }
         count++;
       }
