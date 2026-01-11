@@ -28,7 +28,7 @@ import {
   Layout, Settings, Plus, Trash2, Search, FileText, Layers, 
   CheckCircle2, XCircle, AlertTriangle, ChevronLeft, ChevronRight, 
   RotateCcw, Copy, Printer, TableProperties, Grid as GridIcon,
-  Sparkles, TrendingUp, Info, Type, Menu, X, Download, Share2
+  Sparkles, TrendingUp, Info, Type, Menu, X, Download
 } from 'lucide-react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
@@ -206,10 +206,10 @@ const App: React.FC = () => {
             <section className="space-y-6">
               <SectionHeader icon={<Plus size={16}/>} title="Data Ingestion" />
               <div className="flex bg-slate-100 p-1 rounded-xl md:rounded-2xl">
-                {['manual', 'file', 'batch', 'range'].map((tab) => (
+                {(['manual', 'file', 'batch', 'range'] as const).map((tab) => (
                   <button 
                     key={tab} 
-                    onClick={() => setActiveTab(tab as any)} 
+                    onClick={() => setActiveTab(tab)} 
                     className={`flex-1 py-2 text-[9px] md:text-[10px] font-black rounded-lg md:rounded-xl transition-all uppercase tracking-widest ${activeTab === tab ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400 hover:text-slate-500'}`}
                   >
                     {tab}
@@ -236,7 +236,6 @@ const App: React.FC = () => {
                   <UnitInput label="Label Height" value={config.height} unit={config.unit} onChange={v => setConfig({...config, height: v})} onUnitChange={u => setConfig({...config, unit: u})} />
                 </div>
                 
-                {/* DISPLAY TEXT TOGGLE - REQUESTED OPTIMIZATION */}
                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group transition-all hover:bg-white hover:shadow-md">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl group-hover:scale-110 transition-transform"><Type size={18} /></div>
@@ -354,8 +353,8 @@ const App: React.FC = () => {
                 />
               </div>
               <div className="flex bg-slate-100 p-1 rounded-xl w-full sm:w-auto overflow-x-auto no-scrollbar">
-                {['all', 'valid', 'invalid'].map((f) => (
-                  <button key={f} onClick={() => setFilterType(f as any)} className={`flex-1 sm:flex-none px-4 md:px-6 py-2 md:py-2 text-[9px] md:text-[10px] font-black rounded-lg md:rounded-xl transition-all uppercase tracking-widest ${filterType === f ? 'bg-white shadow-lg text-indigo-600' : 'text-slate-400 hover:text-slate-500'}`}>{f}</button>
+                {(['all', 'valid', 'invalid'] as const).map((f) => (
+                  <button key={f} onClick={() => setFilterType(f)} className={`flex-1 sm:flex-none px-4 md:px-6 py-2 md:py-2 text-[9px] md:text-[10px] font-black rounded-lg md:rounded-xl transition-all uppercase tracking-widest ${filterType === f ? 'bg-white shadow-lg text-indigo-600' : 'text-slate-400 hover:text-slate-500'}`}>{f}</button>
                 ))}
               </div>
             </div>
@@ -598,7 +597,7 @@ const FileInput: React.FC<{ onAdd: (list: string[]) => void; setIsProcessing: (v
       try {
         if(f.name.endsWith('.csv')) {
           Papa.parse(f, { header: true, skipEmptyLines: true, complete: (r) => { 
-            onAdd(r.data.flatMap((row: any) => {
+            onAdd((r.data as any[]).flatMap((row: any) => {
               const code = row.code || row.barcode || Object.values(row)[0];
               const qty = parseInt(row.quantity || row.qty || '1') || 1;
               return Array(Math.min(qty, 500)).fill(String(code));
@@ -607,7 +606,7 @@ const FileInput: React.FC<{ onAdd: (list: string[]) => void; setIsProcessing: (v
           }});
         } else {
           const r = new FileReader(); r.onload = (ev) => {
-            const dataRaw = ev.target?.result;
+            const dataRaw = ev.target?.result as string;
             const wb = XLSX.read(dataRaw, {type:'binary'});
             const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
             onAdd(data.flatMap((row: any) => {
@@ -634,10 +633,10 @@ const RangeInput: React.FC<{ onAdd: (list: string[]) => void }> = ({ onAdd }) =>
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3">
-        <SimpleInput label="Prefix" value={p.pre} onChange={v => setP({...p, pre: v})} />
-        <SimpleInput label="Suffix" value={p.suf} onChange={v => setP({...p, suf: v})} />
-        <SimpleInput label="Start" type="number" value={p.start} onChange={v => setP({...p, start: parseInt(v) || 0})} />
-        <SimpleInput label="End" type="number" value={p.end} onChange={v => setP({...p, end: parseInt(v) || 0})} />
+        <SimpleInput label="Prefix" value={p.pre} onChange={(v: string) => setP({...p, pre: v})} />
+        <SimpleInput label="Suffix" value={p.suf} onChange={(v: string) => setP({...p, suf: v})} />
+        <SimpleInput label="Start" type="number" value={p.start} onChange={(v: string) => setP({...p, start: parseInt(v) || 0})} />
+        <SimpleInput label="End" type="number" value={p.end} onChange={(v: string) => setP({...p, end: parseInt(v) || 0})} />
       </div>
       <button onClick={() => {
         const l = [];
@@ -649,7 +648,14 @@ const RangeInput: React.FC<{ onAdd: (list: string[]) => void }> = ({ onAdd }) =>
   );
 };
 
-const SimpleInput = ({ label, type = 'text', value, onChange }: any) => (
+interface SimpleInputProps {
+  label: string;
+  type?: string;
+  value: string | number;
+  onChange: (v: string) => void;
+}
+
+const SimpleInput: React.FC<SimpleInputProps> = ({ label, type = 'text', value, onChange }) => (
   <div className="space-y-1.5">
     <label className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest block pl-1">{label}</label>
     <input 
