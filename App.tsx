@@ -217,10 +217,10 @@ const App: React.FC = () => {
                 ))}
               </div>
               <div className="bg-slate-50/50 p-4 md:p-6 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-100">
-                {activeTab === 'manual' && <ManualInput onAdd={(v) => addBarcodes([v])} />}
-                {activeTab === 'batch' && <BatchInput onAdd={(list) => addBarcodes(list)} />}
-                {activeTab === 'file' && <FileInput onAdd={(list) => addBarcodes(list)} setIsProcessing={setIsProcessing} setMsg={setProcessingMsg} />}
-                {activeTab === 'range' && <RangeInput onAdd={(list) => addBarcodes(list)} />}
+                {activeTab === 'manual' && <ManualInput onAdd={(v: string) => addBarcodes([v])} />}
+                {activeTab === 'batch' && <BatchInput onAdd={(list: string[]) => addBarcodes(list)} />}
+                {activeTab === 'file' && <FileInput onAdd={(list: string[]) => addBarcodes(list)} setIsProcessing={setIsProcessing} setMsg={setProcessingMsg} />}
+                {activeTab === 'range' && <RangeInput onAdd={(list: string[]) => addBarcodes(list)} />}
               </div>
             </section>
 
@@ -228,12 +228,12 @@ const App: React.FC = () => {
             <section className="space-y-6 pt-10 border-t border-slate-100">
               <SectionHeader icon={<Settings size={16}/>} title="Symbology Matrix" />
               <div className="grid gap-6">
-                <SelectGroup label="Active Standard" value={config.format} onChange={v => setConfig({...config, format: v as BarcodeFormat})}>
+                <SelectGroup label="Active Standard" value={config.format} onChange={(v: string) => setConfig({...config, format: v as BarcodeFormat})}>
                   {FORMAT_GROUPS.map(g => <optgroup key={g.name} label={g.name}>{g.formats.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</optgroup>)}
                 </SelectGroup>
                 <div className="grid grid-cols-2 gap-4">
-                  <UnitInput label="Label Width" value={config.width} unit={config.unit} onChange={v => setConfig({...config, width: v})} onUnitChange={u => setConfig({...config, unit: u})} />
-                  <UnitInput label="Label Height" value={config.height} unit={config.unit} onChange={v => setConfig({...config, height: v})} onUnitChange={u => setConfig({...config, unit: u})} />
+                  <UnitInput label="Label Width" value={config.width} unit={config.unit} onChange={(v: number) => setConfig({...config, width: v})} onUnitChange={(u: Unit) => setConfig({...config, unit: u})} />
+                  <UnitInput label="Label Height" value={config.height} unit={config.unit} onChange={(v: number) => setConfig({...config, height: v})} onUnitChange={(u: Unit) => setConfig({...config, unit: u})} />
                 </div>
                 
                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group transition-all hover:bg-white hover:shadow-md">
@@ -258,13 +258,13 @@ const App: React.FC = () => {
               
               <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
-                  <SelectGroup label="Base Format" value={pageSetup.pageSize} onChange={v => {
+                  <SelectGroup label="Base Format" value={pageSetup.pageSize} onChange={(v: string) => {
                     const dims = PAGE_SIZES[v as PageSizeType];
                     setPageSetup({...pageSetup, pageSize: v as PageSizeType, width: dims.width, height: dims.height, unit: dims.unit});
                   }}>
                     {Object.keys(PAGE_SIZES).map(s => <option key={s} value={s}>{s}</option>)}
                   </SelectGroup>
-                  <SelectGroup label="Sheet Setup" value={pageSetup.orientation} onChange={v => setPageSetup({...pageSetup, orientation: v as any})}>
+                  <SelectGroup label="Sheet Setup" value={pageSetup.orientation} onChange={(v: string) => setPageSetup({...pageSetup, orientation: v as any})}>
                     <option value="portrait">Portrait</option>
                     <option value="landscape">Landscape</option>
                   </SelectGroup>
@@ -273,16 +273,16 @@ const App: React.FC = () => {
                 <div className="space-y-4">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Margin Config</p>
                   <div className="grid grid-cols-2 gap-3">
-                    <UnitInput label="Top" value={pageSetup.marginTop} unit={pageSetup.unit} onChange={v => setPageSetup({...pageSetup, marginTop: v})} onUnitChange={u => setPageSetup({...pageSetup, unit: u})} />
-                    <UnitInput label="Bottom" value={pageSetup.marginBottom} unit={pageSetup.unit} onChange={v => setPageSetup({...pageSetup, marginBottom: v})} onUnitChange={u => setPageSetup({...pageSetup, unit: u})} />
-                    <UnitInput label="Left" value={pageSetup.marginLeft} unit={pageSetup.unit} onChange={v => setPageSetup({...pageSetup, marginLeft: v})} onUnitChange={u => setPageSetup({...pageSetup, unit: u})} />
-                    <UnitInput label="Right" value={pageSetup.marginRight} unit={pageSetup.unit} onChange={v => setPageSetup({...pageSetup, marginRight: v})} onUnitChange={u => setPageSetup({...pageSetup, unit: u})} />
+                    <UnitInput label="Top" value={pageSetup.marginTop} unit={pageSetup.unit} onChange={(v: number) => setPageSetup({...pageSetup, marginTop: v})} onUnitChange={(u: Unit) => setPageSetup({...pageSetup, unit: u})} />
+                    <UnitInput label="Bottom" value={pageSetup.marginBottom} unit={pageSetup.unit} onChange={(v: number) => setPageSetup({...pageSetup, marginBottom: v})} onUnitChange={(u: Unit) => setPageSetup({...pageSetup, unit: u})} />
+                    <UnitInput label="Left" value={pageSetup.marginLeft} unit={pageSetup.unit} onChange={(v: number) => setPageSetup({...pageSetup, marginLeft: v})} onUnitChange={(u: Unit) => setPageSetup({...pageSetup, unit: u})} />
+                    <UnitInput label="Right" value={pageSetup.marginRight} unit={pageSetup.unit} onChange={(v: number) => setPageSetup({...pageSetup, marginRight: v})} onUnitChange={(u: Unit) => setPageSetup({...pageSetup, unit: u})} />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <UnitInput label="Item Gap" value={pageSetup.gutter} unit={pageSetup.unit} onChange={v => setPageSetup({...pageSetup, gutter: v})} onUnitChange={u => setPageSetup({...pageSetup, unit: u})} />
-                  <SelectGroup label="Grid Profile" value={pageSetup.template?.name || ''} onChange={v => setPageSetup({...pageSetup, template: LABEL_TEMPLATES.find(t => t.name === v)})}>
+                  <UnitInput label="Item Gap" value={pageSetup.gutter} unit={pageSetup.unit} onChange={(v: number) => setPageSetup({...pageSetup, gutter: v})} onUnitChange={(u: Unit) => setPageSetup({...pageSetup, unit: u})} />
+                  <SelectGroup label="Grid Profile" value={pageSetup.template?.name || ''} onChange={(v: string) => setPageSetup({...pageSetup, template: LABEL_TEMPLATES.find(t => t.name === v)})}>
                     <option value="">Optimized Mesh</option>
                     {LABEL_TEMPLATES.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
                   </SelectGroup>
