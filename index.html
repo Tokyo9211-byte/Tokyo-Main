@@ -3,40 +3,88 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Industrial Bulk Barcode Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Industrial Bulk Barcode Pro | Precision Batch Controller</title>
+    <meta name="description" content="Professional-grade bulk barcode generation tool for industrial logistics and retail.">
+    
+    <!-- Open Graph / Social -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Industrial Bulk Barcode Pro">
+    <meta property="og:description" content="Precision batch barcode controller with multi-format support and industrial print optimization.">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-        body { font-family: 'Inter', sans-serif; overflow: hidden; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        :root {
+            --app-height: 100%;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            overflow: hidden;
+            background-color: #F8F9FC;
+            height: 100vh;
+            height: var(--app-height);
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
-        .transition-all { transition-duration: 350ms; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .transition-all { 
+            transition-duration: 300ms; 
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+
+        /* Prevent layout shift on mobile keyboards */
+        @media (max-width: 1024px) {
+            .mobile-height-fix {
+                height: calc(var(--app-height) - 4rem);
+            }
+        }
     </style>
+
 <script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "jsbarcode": "https://esm.sh/jsbarcode@^3.11.6",
-    "qrcode": "https://esm.sh/qrcode@^1.5.4",
+    "react": "https://esm.sh/react@18.3.1",
+    "react/": "https://esm.sh/react@18.3.1/",
+    "react-dom": "https://esm.sh/react-dom@18.3.1",
+    "react-dom/": "https://esm.sh/react-dom@18.3.1/",
+    "jsbarcode": "https://esm.sh/jsbarcode@3.11.6",
+    "qrcode": "https://esm.sh/qrcode@1.5.4",
     "jspdf": "https://esm.sh/jspdf@2.5.1",
-    "jszip": "https://esm.sh/jszip@^3.10.1",
-    "file-saver": "https://esm.sh/file-saver@^2.0.5",
-    "lucide-react": "https://esm.sh/lucide-react@^0.462.0",
-    "papaparse": "https://esm.sh/papaparse@^5.5.3",
-    "xlsx": "https://esm.sh/xlsx@^0.18.5",
+    "jszip": "https://esm.sh/jszip@3.10.1",
+    "file-saver": "https://esm.sh/file-saver@2.0.5",
+    "lucide-react": "https://esm.sh/lucide-react@0.462.0?external=react,react-dom",
+    "papaparse": "https://esm.sh/papaparse@5.5.3",
+    "xlsx": "https://esm.sh/xlsx@0.18.5",
     "vite": "https://esm.sh/vite@^7.3.1",
     "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
   }
 }
 </script>
 </head>
-<body class="bg-[#F8F9FC] text-slate-900">
+<body class="text-slate-900">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
+    <script>
+        // Adjust for mobile viewport height issues (e.g. Chrome mobile address bar)
+        const updateHeight = () => {
+            document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+        };
+        window.addEventListener('resize', updateHeight);
+        updateHeight();
+    </script>
 </body>
 </html>
